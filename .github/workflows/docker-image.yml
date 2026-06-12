@@ -3,29 +3,38 @@ on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
+
+# Least privilege: the workflow only checks out code and pushes an image.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: read
+      packages: write
     steps:
-    - uses: actions/checkout@v3
-    - uses: docker/login-action@v2.1.0
+    - uses: actions/checkout@v4
+
+    - uses: docker/login-action@v3
       with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-    - id: owner
-      uses: ASzc/change-string-case-action@v5
-      with:
-          string: ${{ github.repository_owner }}
-    - id: repo
-      uses: ASzc/change-string-case-action@v5
-      with:
-          string: ${{ github.event.repository.name }}
-    - uses: docker/build-push-action@v4
+
+    # Lowercase owner/repo in shell instead of a third-party action.
+    - id: ref
+      run: |
+        echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+        echo "repo=${REPO_NAME,,}" >> "$GITHUB_OUTPUT"
+      env:
+        REPO_NAME: ${{ github.event.repository.name }}
+
+    - uses: docker/build-push-action@v6
       with:
           context: .
           file: Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.owner.outputs.lowercase }}/${{ steps.repo.outputs.lowercase }}:latest
+            ghcr.io/${{ steps.ref.outputs.owner }}/${{ steps.ref.outputs.repo }}:latest

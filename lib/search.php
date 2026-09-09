@@ -1,9 +1,11 @@
 <?php
 declare(strict_types=1);
 
+const BT_BOOKMARK_MAX_BYTES = 4096;
+
 function bt_search_bookmark_token(mixed $value): ?string
 {
-    if (!is_string($value) || $value === '' || strlen($value) > 2048
+    if (!is_string($value) || $value === '' || strlen($value) > BT_BOOKMARK_MAX_BYTES
         || !preg_match('//u', $value) || preg_match('/[\s\p{Cc}\p{Z}]/u', $value)
         || in_array($value, ['-end-', '-end'], true) || str_starts_with($value, 'Y2JOb25lO')) {
         return null;
@@ -90,14 +92,14 @@ function bt_parse_results(array $payload): array
 
 function bt_search_cache_key(string $query, string $bookmark = ''): string
 {
-    // Invalidate old parsed entries whose canonical next cursor was discarded.
-    return 'v2:' . json_encode([$query, $bookmark], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    // Invalidate parsed entries whose valid cursor exceeded the old byte limit.
+    return 'v3:' . json_encode([$query, $bookmark], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 }
 
 function bt_search(string $query, ?string $bookmark = null): array
 {
     $bookmark = $bookmark ?? '';
-    foreach ([[$query, 160], [$bookmark, 2048]] as [$value, $max]) {
+    foreach ([[$query, 160], [$bookmark, BT_BOOKMARK_MAX_BYTES]] as [$value, $max]) {
         if (strlen($value) > $max || preg_match('/[\x00-\x1f\x7f]/', $value) || !preg_match('//u', $value)) {
             throw new InvalidArgumentException('Invalid search parameter.');
         }
@@ -111,7 +113,8 @@ function bt_search(string $query, ?string $bookmark = null): array
         $options = ['query' => $query, 'scope' => 'pins', 'page_size' => 25, 'rs' => 'typed'];
         if ($bookmark !== '') { $options['bookmarks'] = [$bookmark]; }
         $params = ['source_url' => '/search/pins/?' . http_build_query(['q' => $query]),
-            'data' => json_encode(['options' => $options, 'context' => new stdClass()], JSON_THROW_ON_ERROR)];
+            'data' => json_encode(['options' => $options, 'context' => new stdClass()],
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)];
         $response = bt_http_get('https://www.pinterest.com/resource/BaseSearchResource/get/?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986));
         try { $payload = json_decode($response['body'], true, 64, JSON_THROW_ON_ERROR); }
         catch (JsonException $e) { throw new RuntimeException('Image provider returned an unexpected response.'); }

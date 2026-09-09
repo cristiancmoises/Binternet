@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 declare(strict_types=1);
 
-const BT_VERSION = '2026.09.08.4';
+const BT_VERSION = '2026.09.08.5';
 require_once __DIR__ . '/cache.php';
 require_once __DIR__ . '/http.php';
 require_once __DIR__ . '/search.php';

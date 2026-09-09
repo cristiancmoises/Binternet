@@ -31,8 +31,30 @@ test('next-page validation blocks origin changes, credentials, other routes and 
     page('A') + '#fragment', page('A') + '&q=architecture', page('A') + '&extra=yes',
     page('A').replace('q=architecture', 'q=birds'), page('A').replace('view=masonry', 'view=grid'),
     page('A').replace('quality=auto', 'quality=original'), page('A').replace('theme=black', 'theme=paper'),
-    page('A').replace('scroll=infinite', 'scroll=manual'), page(''), page('A\rB'), page('a'.repeat(2049)),
+    page('A').replace('scroll=infinite', 'scroll=manual'), page(''), page('A\rB'), page('a'.repeat(4097)),
   ]) assert.throws(() => validateNextUrl(url, context), Error, url);
+});
+
+test('next-page cursor accepts long opaque values and limits UTF-8 bytes', () => {
+  for (const bookmark of ['a'.repeat(2064), 'b'.repeat(4096), 'é'.repeat(2048), '/'.repeat(4096), '"'.repeat(4096)]) {
+    assert.equal(new URL(validateNextUrl(page(bookmark), context)).searchParams.get('bookmark'), bookmark);
+  }
+  for (const bookmark of ['c'.repeat(4097), 'é'.repeat(2048) + 'x']) {
+    assert.throws(() => validateNextUrl(page(bookmark), context), Error);
+  }
+});
+
+test('infinite scrolling follows a cursor longer than the previous 2048-byte limit', async () => {
+  const bookmark = 'a'.repeat(2064);
+  let requested;
+  const {pager, appended} = makePager({initialUrl: page(bookmark), load: async url => {
+    requested = new URL(url).searchParams.get('bookmark');
+    return {cards: [{key: 'second'}], nextUrl: null};
+  }});
+  assert.equal(await pager.loadNext(), true);
+  assert.equal(requested, bookmark);
+  assert.deepEqual(appended, [{key: 'second'}]);
+  assert.equal(pager.state().ended, true);
 });
 
 test('image addresses allow only same-origin proxy and HTTPS Pinterest raster source host', () => {

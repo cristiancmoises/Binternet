@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.09.08.5
+
+- Accept up to 4096 bytes for continuation cursors consistently in PHP and the optional infinite-scroll script. A published real 2064-byte cursor demonstrates why the old 2048-byte cap could hide Next page. The exact VPS cursor has not yet been observed.
+- Invalidate .4 parsed cache entries with cache v3. Keep terminal/repeated/control-character checks and the working routing header.
+- Allow bounded encoded request lines in nginx (16 KiB) and encoded outbound search URLs (32 KiB on the exact Pinterest endpoint only). Generic URL and image URL bounds remain unchanged.
+- Add 2064/4096/4097-byte, Unicode, escaped-punctuation, local HTTP and actual nginx URI regressions. Retain mandatory distinct images on the second candidate page.
+- Include an optional diagnostic for the exact previously built .4 image, reporting cursor metadata and a bounded second-page probe without production cutover or printing cursor values.
+
 ## 2026.09.08.4
 
 - Restore Next page using the canonical Pinterest `resource.options.bookmarks[0]` cursor and invalidate incorrectly parsed search caches. Retain legacy cursor support and stop on malformed, terminal or repeated cursors.

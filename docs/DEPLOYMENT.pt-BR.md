@@ -1,13 +1,13 @@
-# Implantação Docker — 2026.09.08.4
+# Implantação Docker — 2026.09.08.5
 
 Esta versão atualiza o contêiner `binternet` existente na VPS IONOS. O contêiner separado `binternet-candidate-20260907` permanece intacto.
 
 ## Copiar e atualizar a partir do seu computador
 
-Baixe `binternet-securityops-2026.09.08.4.tar.gz` para `~/Downloads`. O arquivo contém a pasta `binternet-securityops-2026.09.08.4`. Execute no fish, bash ou zsh:
+Baixe `binternet-securityops-2026.09.08.5.tar.gz` para `~/Downloads`. O arquivo contém a pasta `binternet-securityops-2026.09.08.5`. Execute no fish, bash ou zsh:
 
 ```sh
-scp -P 5119 ~/Downloads/binternet-securityops-2026.09.08.4.tar.gz root@securityops.co:/root/ && ssh -p 5119 root@securityops.co 'bash -c "set -e; install -d -m 700 /opt/binternet-releases; tar -xzf /root/binternet-securityops-2026.09.08.4.tar.gz -C /opt/binternet-releases; cd /opt/binternet-releases/binternet-securityops-2026.09.08.4; sha256sum --quiet -c MANIFEST.sha256; bash deploy/upgrade.sh"'
+scp -P 5119 ~/Downloads/binternet-securityops-2026.09.08.5.tar.gz root@securityops.co:/root/ && ssh -p 5119 root@securityops.co 'bash -c "set -e; install -d -m 700 /opt/binternet-releases; tar -xzf /root/binternet-securityops-2026.09.08.5.tar.gz -C /opt/binternet-releases; cd /opt/binternet-releases/binternet-securityops-2026.09.08.5; sha256sum --quiet -c MANIFEST.sha256; bash deploy/upgrade.sh"'
 ```
 
 A VPS precisa de Docker e Python 3, além de acesso ao registro de imagens, repositórios Alpine, Pinterest e CDN de imagens. A autenticação SSH existente é utilizada; o projeto não contém credenciais. Repetir a extração desta mesma versão sobrescreve a pasta do código; mantenha alterações locais separadas.
@@ -27,7 +27,7 @@ Variáveis de ambiente com múltiplas linhas são recusadas. O diretório de cac
 Se o Pinterest estiver indisponível, a verificação padrão impede a troca. Para aceitar explicitamente que a disponibilidade da busca não foi confirmada, execute na VPS:
 
 ```sh
-bash /opt/binternet-releases/binternet-securityops-2026.09.08.4/deploy/upgrade.sh --skip-upstream-check
+bash /opt/binternet-releases/binternet-securityops-2026.09.08.5/deploy/upgrade.sh --skip-upstream-check
 ```
 
 Essa opção ignora as duas verificações de páginas reais do Pinterest. As verificações locais de saúde, página inicial, CSS e script continuam ativas. Ela não corrige bloqueios, indisponibilidade ou falhas de paginação do Pinterest.
@@ -80,7 +80,7 @@ Execute os testes da atualização com:
 python3 -m unittest discover -s deploy -p 'test_*.py' -v
 ```
 
-Eles simulam a interface Docker para verificar preservação de configurações, permissões privadas, falha do candidato, falha durante a troca, restauração, uso do ID da imagem testada e proteção de outros contêineres. Esses testes não equivalem a compilar e executar a imagem real. O operador confirmou o funcionamento da versão .3 na VPS. O ambiente de desenvolvimento não possui Docker nem permite verificar o Pinterest ao vivo ou utilizar um navegador real para estes testes. A compilação da imagem .4, as duas páginas reais e a verificação no navegador continuam pendentes em um ambiente com esse acesso. Nenhum acesso SSH ou implantação da .4 foi realizado durante a preparação desta versão.
+Eles simulam a interface Docker para verificar preservação de configurações, permissões privadas, falha do candidato, falha durante a troca, restauração, uso do ID da imagem testada e proteção de outros contêineres. Esses testes não equivalem a compilar e executar a imagem real. O operador confirmou o funcionamento da versão .3 na VPS. O ambiente de desenvolvimento não possui Docker nem permite verificar o Pinterest ao vivo ou utilizar um navegador real para estes testes. A compilação da imagem .5, as duas páginas reais e a verificação no navegador continuam pendentes em um ambiente com esse acesso. Nenhum acesso SSH ou implantação da .5 foi realizado durante a preparação desta versão.
 
 ## Diagnóstico de falhas na inicialização
 
@@ -94,8 +94,12 @@ Se o candidato falhar, o atualizador mostra a pasta privada `failure-diagnostics
 O candidato .2 ficou saudável, mas o Pinterest respondeu HTTP 403. A versão .3 inclui o cabeçalho de roteamento usado pelos clientes mantidos. O comando normal acima continua exigindo imagens reais antes da troca. Se houver nova recusa, o erro identifica `/search.php` e `Pinterest HTTP 403`, com os dados estruturados no arquivo privado `failure-diagnostics/failure.json`. Veja [a evidência da correção](PINTEREST_403_FIX.md).
 
 
-## Paginação e rolagem infinita opcional na .4
+## Paginação e rolagem infinita opcional
 
-O parser agora lê `resource.options.bookmarks[0]`; marcadores explícitos de fim têm prioridade sobre os metadados antigos. As chaves de cache da busca passam a usar o prefixo `v2:`, impedindo que um resultado armazenado pela .3 sem continuação esconda o link corrigido. A paginação manual permanece como padrão. Selecionar Infinite scroll inclui `scroll=infinite` nos links de busca e paginação.
+O parser agora lê `resource.options.bookmarks[0]`; marcadores explícitos de fim têm prioridade sobre os metadados antigos. As chaves de cache da busca passam a usar o prefixo `v3:`, impedindo que um resultado armazenado pelas versões anteriores sem continuação esconda o link corrigido. A paginação manual permanece como padrão. Selecionar Infinite scroll inclui `scroll=infinite` nos links de busca e paginação.
 
 O navegador carrega uma página da mesma origem por vez, com prazo de 15 segundos e limite de 2 MiB para a resposta HTML. Os cartões são reconstruídos a partir de dados validados; imagens duplicadas são descartadas. Páginas repetidas e erros interrompem novas requisições automáticas. Os controles Pause, Retry loading e Next page ficam disponíveis conforme o estado. Não existe um teto fixo de páginas, mas os cartões já carregados continuam consumindo memória do navegador. Veja [a correção e os limites de verificação](PAGINATION_FIX.md).
+
+## Correção do tamanho do marcador na .5
+
+O candidato .4 ficou saudável, mas falhou na verificação do Next page antes da troca. A .5 aceita marcadores válidos de até 4096 bytes; um marcador público de 2064 bytes demonstrou que o limite anterior era insuficiente. O comando normal continua exigindo duas páginas reais. Se ainda falhar, execute `python3 deploy/diagnose_pagination.py` nesta pasta da versão .5 na VPS. O diagnóstico opcional usa a imagem .4 preservada, com ID fixado, e mostra somente metadados da paginação. Ele não implanta um substituto.

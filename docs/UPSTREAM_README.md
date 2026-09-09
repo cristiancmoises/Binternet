@@ -5,7 +5,7 @@
 <h3 align="center">Mirrors</h3>
 
 <div align="center">
- 
+
 [GitHub](https://github.com/Ahwxorg/Binternet)
 
 > Because of PRs/issues, I will use GitHub for now. If you don't like GitHub, you can use one of the [GotHub](https://codeberg.org/gothub/gothub) instances.

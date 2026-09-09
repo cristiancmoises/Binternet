@@ -14,7 +14,7 @@ Supported raster responses: JPEG, PNG, GIF, WebP and AVIF where the PHP runtime 
 
 ## Cache and concurrency
 
-The cache defaults to `/tmp/binternet-cache`; `BINTERNET_CACHE_DIR` can override it. Docker uses an ephemeral tmpfs. The application does not maintain a separate browser search-history store; ordinary browser history can still contain search URLs. Search cache keys are SHA-256 hashes of versioned query/bookmark tuples. Release 2026.09.08.4 adds the `v2:` key namespace to bypass older parsed entries that discarded the canonical continuation. Cache contents include image titles, URLs and continuation bookmarks.
+The cache defaults to `/tmp/binternet-cache`; `BINTERNET_CACHE_DIR` can override it. Docker uses an ephemeral tmpfs. The application does not maintain a separate browser search-history store; ordinary browser history can still contain search URLs. Search cache keys are SHA-256 hashes of versioned query/bookmark tuples. Release 2026.09.08.5 adds the `v3:` key namespace to bypass older parsed entries that discarded valid continuation tokens. Cache contents include image titles, URLs and continuation bookmarks.
 
 - Search fresh lifetime: 120 seconds; stale results up to 600 seconds on contention or provider failure, visibly identified in the page.
 - Image fresh lifetime: 24 hours; stale images up to 7 days on failure.
@@ -40,3 +40,5 @@ There is no fixed maximum page count. Provider end markers, missing continuation
 `health.php` checks PHP extensions and the cache directory, not Pinterest. The deployment candidate checks the local homepage, stylesheet and script. By default it also searches for `architecture`, requires image results and a valid next-page link, follows that link, and requires distinct new images on the second page before cutover. The explicit `--skip-upstream-check` option skips both live page checks while retaining the local checks. These checks do not prove every image is reachable, exercise browser scrolling, or prove that a public reverse proxy has refreshed a cached container address. Keep NPM configured to the stable `binternet:8080` name on a shared Docker network, or the existing host/port route. When NPM has cached an old container IP, saving only the affected proxy host refreshes its upstream configuration; do not restart unrelated services automatically.
 
 See the audit report for executed tests and gaps. There is no claim of a formal penetration test, reproducible Docker dependency snapshot or guaranteed upstream availability.
+
+Pagination cursors are capped at 4096 UTF-8 bytes. Nginx request lines have a 16 KiB buffer; only the exact outbound Pinterest search endpoint permits encoded URLs up to 32 KiB. This accounts for encoding expansion while retaining bounded requests.

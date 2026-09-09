@@ -20,7 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '2026.09.08.4'
+VERSION = '2026.09.08.5'
 IMAGE = 'binternet-securityops:' + VERSION
 ROOT = Path(__file__).resolve().parent.parent
 OWNER = 'io.securityops.binternet.deployment'

@@ -20,9 +20,13 @@ if ($replacements !== 1) { throw new RuntimeException('Cannot load transport fix
 eval($transportCode);
 eval(<<<'PHP'
 namespace BinternetTransportFixture;
-function gethostbynamel(string $host): array|false { return $GLOBALS['bt_transport_fixture']['ips']; }
+function gethostbynamel(string $host): array|false {
+    $GLOBALS['bt_transport_fixture']['dns_calls']++;
+    return $GLOBALS['bt_transport_fixture']['ips'];
+}
 function curl_init(string $url): object|false {
     $GLOBALS['bt_transport_fixture']['init_calls']++;
+    $GLOBALS['bt_transport_fixture']['url'] = $url;
     return $GLOBALS['bt_transport_fixture']['init_ok'] ? new \stdClass() : false;
 }
 function curl_setopt_array(object $handle, array $options): bool {
@@ -50,10 +54,18 @@ function curl_getinfo(object $handle, int $option): int|string {
 function curl_close(object $handle): void { $GLOBALS['bt_transport_fixture']['close_calls']++; }
 PHP);
 
+// Exercise the real search request serializer through that same I/O fixture.
+$searchCode = file_get_contents($root . '/lib/search.php');
+$searchCode = preg_replace('/^<\?php\s*declare\(strict_types=1\);/',
+    'namespace BinternetTransportFixture; use \\RuntimeException; use \\InvalidArgumentException; use \\JsonException; use \\stdClass;',
+    $searchCode, 1, $replacements);
+if ($replacements !== 1) { throw new RuntimeException('Cannot load search transport fixture'); }
+eval($searchCode);
+
 function transportFixture(array $overrides = []): void
 {
     $GLOBALS['bt_transport_fixture'] = $overrides + [
-        'ips' => ['1.1.1.1'], 'init_ok' => true, 'init_calls' => 0,
+        'ips' => ['1.1.1.1'], 'dns_calls' => 0, 'init_ok' => true, 'init_calls' => 0,
         'ok' => true, 'status' => 200, 'errno' => 0, 'chunks' => ['{"ok":true}'],
         'options' => [], 'close_calls' => 0,
     ];
@@ -293,7 +305,7 @@ test('Search parser handles provider failures, empty results and end bookmarks',
         rejects(static fn() => bt_parse_results($bad), RuntimeException::class);
     }
     check(bt_parse_results(['resource_response' => ['data' => []]])['results'] === []);
-    foreach (['-end-', '-end', 'Y2JOb25lOencoded-end', '', ['array'], str_repeat('a', 2049), "line\r\nbreak", "\xff"] as $bookmark) {
+    foreach (['-end-', '-end', 'Y2JOb25lOencoded-end', '', ['array'], str_repeat('a', 4097), "line\r\nbreak", "\xff"] as $bookmark) {
         $fixture = searchFixture();
         $fixture['resource_response']['bookmark'] = $bookmark;
         check(bt_parse_results($fixture)['bookmark'] === null);
@@ -328,7 +340,7 @@ test('Canonical bookmark metadata takes precedence and never resurrects an ended
     foreach ([[], null, '', 'scalar-next', ['-end-'], ['-end'], ['Y2JOb25lOencoded-end'],
         [null], [['nested-cursor']], ['next' => 'associative'], [1 => 'sparse'], [''],
         [' leading'], ['trailing '], ['two words'], ["no\u{00a0}space"], ["line\nfeed"],
-        ["\xff"], [str_repeat('x', 2049)]] as $bookmarks) {
+        ["\xff"], [str_repeat('x', 4097)]] as $bookmarks) {
         $fixture['resource']['options']['bookmarks'] = $bookmarks;
         check(bt_parse_results($fixture)['bookmark'] === null, 'Invalid canonical metadata fell back to a legacy cursor');
     }
@@ -336,8 +348,65 @@ test('Canonical bookmark metadata takes precedence and never resurrects an ended
         $fixture['resource'] = $resource;
         check(bt_parse_results($fixture)['bookmark'] === null);
     }
-    $fixture['resource'] = ['options' => ['bookmarks' => [str_repeat('x', 2048)]]];
-    check(strlen(bt_parse_results($fixture)['bookmark']) === 2048);
+    $fixture['resource'] = ['options' => ['bookmarks' => [str_repeat('x', 4096)]]];
+    check(strlen(bt_parse_results($fixture)['bookmark']) === 4096);
+});
+
+test('Long Pinterest cursors survive parsing and cached pagination within a byte limit', static function (): void {
+    check(BT_BOOKMARK_MAX_BYTES === 4096);
+    foreach ([str_repeat('a', 2064), str_repeat('b', 4096), str_repeat('é', 2048)] as $cursor) {
+        $fixture = searchFixture();
+        $fixture['resource']['options']['bookmarks'] = [$cursor];
+        check(bt_parse_results($fixture)['bookmark'] === $cursor);
+        unset($fixture['resource']);
+        $fixture['resource_response']['bookmark'] = $cursor;
+        check(bt_parse_results($fixture)['bookmark'] === $cursor, 'Legacy long cursor was lost');
+        $_GET = ['bookmark' => $cursor];
+        check(bt_param('bookmark', '', BT_BOOKMARK_MAX_BYTES) === $cursor);
+        $nextPage = bt_parse_results(searchFixture());
+        bt_cache_put('search', bt_search_cache_key('long cursor fixture', $cursor), json_encode($nextPage, JSON_THROW_ON_ERROR));
+        check(count(bt_search('long cursor fixture', $cursor)['results']) === 1);
+    }
+    foreach ([str_repeat('c', 4097), str_repeat('é', 2048) . 'x'] as $cursor) {
+        check(bt_search_bookmark_token($cursor) === null, 'Cursor limit counted characters instead of bytes');
+        $_GET = ['bookmark' => $cursor];
+        rejects(static fn() => bt_param('bookmark', '', BT_BOOKMARK_MAX_BYTES));
+        rejects(static fn() => bt_search('long cursor fixture', $cursor));
+    }
+});
+
+test('Long opaque cursors round trip through the real bounded search request', static function (): void {
+    $query = str_repeat('/', 160);
+    foreach ([str_repeat('/', 4096), str_repeat('é', 2048), str_repeat('"', 4096), str_repeat('\\', 4096)] as $cursor) {
+        transportFixture(['chunks' => [json_encode(searchFixture(), JSON_THROW_ON_ERROR)]]);
+        $result = \BinternetTransportFixture\bt_search($query, $cursor);
+        check(count($result['results']) === 1);
+        check($GLOBALS['bt_transport_fixture']['init_calls'] === 1);
+        $url = $GLOBALS['bt_transport_fixture']['url'];
+        check(strlen($url) <= 32768, 'Valid cursor exceeded the outbound URL budget');
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $params);
+        $payload = json_decode($params['data'], true, 64, JSON_THROW_ON_ERROR);
+        check($payload['options']['query'] === $query);
+        check($payload['options']['bookmarks'] === [$cursor], 'Request serializer altered the cursor');
+        check($payload['options']['scope'] === 'pins' && $payload['options']['page_size'] === 25);
+    }
+});
+
+test('The larger outbound URL budget is restricted to the exact search endpoint', static function (): void {
+    $search = 'https://www.pinterest.com/resource/BaseSearchResource/get/?data=';
+    transportFixture();
+    \BinternetTransportFixture\bt_http_get($search . str_repeat('a', 32768 - strlen($search)));
+    check($GLOBALS['bt_transport_fixture']['init_calls'] === 1);
+    foreach ([$search . str_repeat('a', 32769 - strlen($search)),
+        'https://www.pinterest.com/resource/OtherResource/get/?data=' . str_repeat('a', 16384),
+        'https://i.pinimg.com/originals/' . str_repeat('a', 16384)] as $url) {
+        transportFixture();
+        rejects(static fn() => \BinternetTransportFixture\bt_http_get($url));
+        check($GLOBALS['bt_transport_fixture']['dns_calls'] === 0 && $GLOBALS['bt_transport_fixture']['init_calls'] === 0,
+            'Oversized URL reached DNS/cURL');
+    }
+    rejects(static fn() => bt_validate_url($search . str_repeat('a', 16384), ['www.pinterest.com']));
+    rejects(static fn() => bt_validate_image_url('https://i.pinimg.com/' . str_repeat('a', 4096)));
 });
 
 test('Legacy response cursors remain supported only when canonical cursors are absent', static function (): void {
@@ -372,14 +441,16 @@ test('Cached search refuses a repeated cursor and ignores the previous parsed ca
     $served = bt_search($query, $cursor);
     check($served['cached'] && $served['bookmark'] === null);
     check(count($served['results']) === 1, 'Loop protection removed valid images');
-    $oldKey = 'v1:' . json_encode([$query, $cursor], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-    check(bt_search_cache_key($query, $cursor) !== $oldKey);
-    bt_cache_put('search', $oldKey, '{"results":[],"bookmark":null}');
+    foreach (['v1:', 'v2:'] as $version) {
+        $oldKey = $version . json_encode([$query, $cursor], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        check(bt_search_cache_key($query, $cursor) !== $oldKey);
+        bt_cache_put('search', $oldKey, '{"results":[],"bookmark":null}');
+    }
     check(count(bt_search($query, $cursor)['results']) === 1);
 });
 
 test('Invalid search and bookmark parameters fail before transport', static function (): void {
-    foreach ([['', ''], ['   ', ''], [str_repeat('a', 161), ''], ['q', str_repeat('b', 2049)], ['q', "bad\nbookmark"],
+    foreach ([['', ''], ['   ', ''], [str_repeat('a', 161), ''], ['q', str_repeat('b', 4097)], ['q', "bad\nbookmark"],
         ['q', 'two words'], ['q', '-end-'], ['q', 'Y2JOb25lOencoded-end']] as [$query, $bookmark]) {
         rejects(static fn() => bt_search($query, $bookmark));
     }

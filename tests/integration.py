@@ -31,6 +31,7 @@ FIXTURE_QUERY = 'art & "design" <script>alert(1)</script>'
 FIXTURE_BOOKMARK = 'opaque/next+page==&x="quoted"'
 FIXTURE_IMAGE = "https://i.pinimg.com/originals/http-fixture.gif"
 CANONICAL_QUERY = "canonical pagination"
+CANONICAL_BOOKMARK = "a" * 2064
 SECOND_IMAGE = "https://i.pinimg.com/originals/second-page.gif"
 
 
@@ -101,9 +102,9 @@ def seed_cache(env):
     fixtures = [
         {"query": CANONICAL_QUERY, "cursor": "", "payload": {
             "resource_response": {"status": "success", "data": [raw_pin]},
-            "resource": {"options": {"bookmarks": [FIXTURE_BOOKMARK]}},
+            "resource": {"options": {"bookmarks": [CANONICAL_BOOKMARK]}},
         }},
-        {"query": CANONICAL_QUERY, "cursor": FIXTURE_BOOKMARK, "payload": {
+        {"query": CANONICAL_QUERY, "cursor": CANONICAL_BOOKMARK, "payload": {
             "resource_response": {"status": "success", "data": [raw_second]},
             "resource": {"options": {"bookmarks": ["-end-"]}},
         }},
@@ -312,7 +313,7 @@ class HttpRegressionTests(unittest.TestCase):
                 target = urllib.parse.urlsplit(links[0]["href"])
                 self.assertFalse(target.scheme or target.netloc)
                 actual = urllib.parse.parse_qs(target.query)
-                self.assertEqual(actual, {key: [value] for key, value in dict(params, bookmark=FIXTURE_BOOKMARK).items()})
+                self.assertEqual(actual, {key: [value] for key, value in dict(params, bookmark=CANONICAL_BOOKMARK).items()})
                 scripts = page.attrs("script")
                 self.assertEqual(len(scripts), 1 if scroll == "infinite" else 0)
                 if scripts:

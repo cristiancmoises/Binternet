@@ -20,9 +20,9 @@ final class BtUpstreamException extends RuntimeException
     }
 }
 
-function bt_validate_url(string $url, array $hosts): array
+function bt_validate_url(string $url, array $hosts, int $maxBytes = 16384): array
 {
-    if (strlen($url) > 16384 || preg_match('/[\x00-\x20\x7f\\\\]/', $url)) {
+    if (strlen($url) > $maxBytes || preg_match('/[\x00-\x20\x7f\\\\]/', $url)) {
         throw new InvalidArgumentException('Invalid image URL.');
     }
     $parts = parse_url($url);
@@ -69,7 +69,10 @@ function bt_http_body_sink(int $limit, string &$body): Closure
 
 function bt_http_get(string $url, int $limit = 2097152): array
 {
-    $parts = bt_validate_url($url, ['www.pinterest.com', 'i.pinimg.com']);
+    // Opaque search cursors expand when JSON-escaped and URL-encoded. Keep the
+    // larger budget specific to this exact endpoint; image bounds stay intact.
+    $urlLimit = str_starts_with($url, 'https://www.pinterest.com/resource/BaseSearchResource/get/?') ? 32768 : 16384;
+    $parts = bt_validate_url($url, ['www.pinterest.com', 'i.pinimg.com'], $urlLimit);
     $host = strtolower($parts['host']);
     $ips = gethostbynamel($host);
     if (!$ips) { throw new BtUpstreamException('dns'); }

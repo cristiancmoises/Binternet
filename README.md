@@ -2,11 +2,11 @@
 
 A lightweight Pinterest image browser with no login wall and a same-origin image proxy. Manual browsing works without JavaScript; infinite scrolling is optional. This package extends [cristiancmoises/Binternet](https://github.com/cristiancmoises/Binternet) from commit `b8dc197b4930b50ba7356d579d684182e93af428`.
 
-Release: **2026.09.08.4**.
+Release: **2026.09.08.5**.
 
 ## What changed
 
-Release 2026.09.08.4 restores the next-page link by reading Pinterest's canonical continuation bookmark and adds optional infinite scrolling. Deployment now checks two live result pages before cutover. See [pagination repair and limits](docs/PAGINATION_FIX.md). The [API compatibility repair from .3](docs/PINTEREST_403_FIX.md) and the read-only Nginx startup repair from .2 are retained.
+Release 2026.09.08.5 fixes a cursor-size compatibility defect: a published valid Pinterest cursor has 2064 bytes, while .4 discarded anything above 2048. Pagination now accepts up to 4096 bytes consistently in PHP and optional infinite scrolling, with bounded encoded-URL capacity and fresh cache keys. Deployment now checks two live result pages before cutover. See [pagination repair and limits](docs/PAGINATION_FIX.md). The [API compatibility repair from .3](docs/PINTEREST_403_FIX.md) and the read-only Nginx startup repair from .2 are retained.
 
 - **Five themes:** Black (default), Charcoal, Midnight, Paper and Forest.
 - **Five galleries:** Masonry, Grid, Compact, Justified and Focus.
@@ -42,7 +42,7 @@ NGINX_BIN=nginx python3 -m unittest discover -s tests -p 'test_nginx_runtime.py'
 python3 -m unittest discover -s deploy -p 'test_*.py' -v
 ```
 
-The CI workflow additionally builds the hardened Docker image and checks route exposure. See [AUDIT.md](AUDIT.md) for exact evidence and remaining checks; an authored CI job is not a claim that it has already passed on GitHub. Release .3 was confirmed working by the VPS operator. The .4 Docker build, live Pinterest pagination and browser behavior still need verification on a host that can run them.
+The CI workflow additionally builds the hardened Docker image and checks route exposure. See [AUDIT.md](AUDIT.md) for exact evidence and remaining checks; an authored CI job is not a claim that it has already passed on GitHub. Release .3 was confirmed working by the VPS operator. The .4 candidate built and became healthy on the VPS, but its pagination check failed before cutover. The .5 Docker build, live Pinterest pagination and browser behavior still need verification on a host that can run them.
 
 ## Technical details
 

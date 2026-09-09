@@ -193,6 +193,16 @@ class LiveNginx(unittest.TestCase):
             self.assertIn("connect-src 'self'", csp)
             self.assertNotIn("unsafe-inline", csp)
 
+    def test_long_cursor_request_line_fits_but_over_limit_is_rejected(self):
+        # Static response isolates nginx's URI budget from PHP/FPM availability.
+        path = "/static/app.css?bookmark=" + "%2F" * 4096
+        with self.opener.open(self.base_url + path, timeout=2) as response:
+            self.assertEqual(response.status, 200)
+        with self.assertRaises(urllib.error.HTTPError) as error:
+            self.opener.open(self.base_url + "/static/app.css?bookmark=" + "a" * 17000, timeout=2)
+        self.assertEqual(error.exception.code, 414)
+        error.exception.close()
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

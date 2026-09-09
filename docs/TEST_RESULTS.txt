@@ -1,9 +1,41 @@
-Binternet 2026.09.08.4 — local execution evidence
+Binternet 2026.09.08.5 — local execution evidence
 Date: 2026-09-09
-No Docker build, VPS deployment, live Pinterest request or actual browser scrolling executed here.
+No Docker build, live Pinterest response, VPS deployment or browser scrolling test was performed here.
+Suites: 0 PHP security; 1 Python HTTP; 2 Node infinite scroll; 3 actual local Nginx; 4 deployment and diagnostic; 5 PHP probe lint.
 
-PHP HTTP integration: python3 tests/integration.py (PHP 8.3 with required extensions)
-exit=0
+Suite 0; exit=0
+PASS Parameters preserve query characters before output escaping
+PASS Malformed, oversized and control-character parameters are rejected
+PASS Preference values are allow-listed and arrays fall back safely
+PASS Proxy links encode complete upstream URLs as a single parameter
+PASS Image URL allow-list rejects SSRF and parser-confusion candidates
+PASS DNS filtering rejects internal, metadata, mapped and reserved addresses
+PASS Unknown-length response callback aborts before crossing byte cap
+PASS Resource request sends the Pinterest handler only to the exact search endpoint
+PASS Transport failures retain safe DNS, cURL and upstream HTTP metadata
+PASS Transport byte-cap failure exposes cURL metadata without returning partial content
+PASS Image validation rejects active markup and forged content types
+PASS Search parser chooses real original and removes duplicate and invalid pins
+PASS Search parser handles provider failures, empty results and end bookmarks
+PASS Canonical Pinterest response advances to the second page and stops at the end
+PASS Canonical bookmark metadata takes precedence and never resurrects an ended cursor
+PASS Long Pinterest cursors survive parsing and cached pagination within a byte limit
+PASS Long opaque cursors round trip through the real bounded search request
+PASS The larger outbound URL budget is restricted to the exact search endpoint
+PASS Legacy response cursors remain supported only when canonical cursors are absent
+PASS Cached search refuses a repeated cursor and ignores the previous parsed cache version
+PASS Invalid search and bookmark parameters fail before transport
+PASS Cache keys cannot escape the private cache directory
+PASS Cache writes, expiration and oversized entry rejection
+PASS Cache reads reject symbolic links
+PASS Fresh cache avoids network work and stale cache survives failure
+PASS Cache entry count is bounded under many unique searches
+PASS Cache total bytes stay within 64 MiB during image churn
+
+27 passed; 0 failed. Offline unit/fixture tests only.
+
+
+Suite 1; exit=0
 test_all_galleries_and_quality_modes_render_from_cache (__main__.HttpRegressionTests.test_all_galleries_and_quality_modes_render_from_cache) ... ok
 test_array_parameters_do_not_crash (__main__.HttpRegressionTests.test_array_parameters_do_not_crash) ... ok
 test_cached_image_conditional_and_head_requests (__main__.HttpRegressionTests.test_cached_image_conditional_and_head_requests) ... ok
@@ -24,68 +56,42 @@ test_security_headers (__main__.HttpRegressionTests.test_security_headers) ... o
 test_theme_form_submissions_preserve_the_search (__main__.HttpRegressionTests.test_theme_form_submissions_preserve_the_search) ... ok
 
 ----------------------------------------------------------------------
-Ran 18 tests in 0.184s
+Ran 18 tests in 0.150s
 
 OK (skipped=2)
 
-Security/cache: php tests/security.php
-exit=0
-PASS Parameters preserve query characters before output escaping
-PASS Malformed, oversized and control-character parameters are rejected
-PASS Preference values are allow-listed and arrays fall back safely
-PASS Proxy links encode complete upstream URLs as a single parameter
-PASS Image URL allow-list rejects SSRF and parser-confusion candidates
-PASS DNS filtering rejects internal, metadata, mapped and reserved addresses
-PASS Unknown-length response callback aborts before crossing byte cap
-PASS Resource request sends the Pinterest handler only to the exact search endpoint
-PASS Transport failures retain safe DNS, cURL and upstream HTTP metadata
-PASS Transport byte-cap failure exposes cURL metadata without returning partial content
-PASS Image validation rejects active markup and forged content types
-PASS Search parser chooses real original and removes duplicate and invalid pins
-PASS Search parser handles provider failures, empty results and end bookmarks
-PASS Canonical Pinterest response advances to the second page and stops at the end
-PASS Canonical bookmark metadata takes precedence and never resurrects an ended cursor
-PASS Legacy response cursors remain supported only when canonical cursors are absent
-PASS Cached search refuses a repeated cursor and ignores the previous parsed cache version
-PASS Invalid search and bookmark parameters fail before transport
-PASS Cache keys cannot escape the private cache directory
-PASS Cache writes, expiration and oversized entry rejection
-PASS Cache reads reject symbolic links
-PASS Fresh cache avoids network work and stale cache survives failure
-PASS Cache entry count is bounded under many unique searches
-PASS Cache total bytes stay within 64 MiB during image churn
 
-24 passed; 0 failed. Offline unit/fixture tests only.
-
-Optional scroll: node --test tests/infinite-scroll.test.js
-exit=0
-✔ next-page URL keeps query and every preference, accepts opaque bookmarks (1.88864ms)
-✔ next-page validation blocks origin changes, credentials, other routes and settings (1.455699ms)
-✔ image addresses allow only same-origin proxy and HTTPS Pinterest raster source host (0.409376ms)
-✔ intersection bursts create one in-flight request and leave real next URL intact (1.891304ms)
-✔ duplicate images within and between pages are not appended twice (0.443758ms)
-✔ exhausted results stop requests and clear the next link (0.540282ms)
-✔ repeated bookmark is stopped even when URL query order changes (0.643027ms)
-✔ a cursor cycle across several pages is stopped (0.644729ms)
-✔ a page with no new images stops automatic loading but preserves valid manual continuation (0.456076ms)
-✔ network and provider errors stop automatic retries and preserve fallback URL (0.654414ms)
-✔ invalid continuation rejects the response without appending image cards (1.648148ms)
-✔ pause blocks loads and resume permits continuation (0.439031ms)
-✔ timeout aborts transport and requires explicit retry (9.405028ms)
-✔ page suspension cancels outstanding request without losing manual continuation (0.52532ms)
-✔ HTML reader enforces decoded byte limit even without content length (7.127999ms)
-✔ appending constructs text and local image attributes, retaining independent page layout (0.399982ms)
-ℹ tests 16
+Suite 2; exit=0
+✔ next-page URL keeps query and every preference, accepts opaque bookmarks (1.541689ms)
+✔ next-page validation blocks origin changes, credentials, other routes and settings (1.259244ms)
+✔ next-page cursor accepts long opaque values and limits UTF-8 bytes (4.484635ms)
+✔ infinite scrolling follows a cursor longer than the previous 2048-byte limit (1.736251ms)
+✔ image addresses allow only same-origin proxy and HTTPS Pinterest raster source host (0.410307ms)
+✔ intersection bursts create one in-flight request and leave real next URL intact (0.435555ms)
+✔ duplicate images within and between pages are not appended twice (0.505911ms)
+✔ exhausted results stop requests and clear the next link (0.429195ms)
+✔ repeated bookmark is stopped even when URL query order changes (0.407843ms)
+✔ a cursor cycle across several pages is stopped (0.688356ms)
+✔ a page with no new images stops automatic loading but preserves valid manual continuation (0.387342ms)
+✔ network and provider errors stop automatic retries and preserve fallback URL (0.694655ms)
+✔ invalid continuation rejects the response without appending image cards (0.291829ms)
+✔ pause blocks loads and resume permits continuation (0.238008ms)
+✔ timeout aborts transport and requires explicit retry (5.45879ms)
+✔ page suspension cancels outstanding request without losing manual continuation (0.62498ms)
+✔ HTML reader enforces decoded byte limit even without content length (9.53225ms)
+✔ appending constructs text and local image attributes, retaining independent page layout (0.524269ms)
+ℹ tests 18
 ℹ suites 0
-ℹ pass 16
+ℹ pass 18
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 124.75384
+ℹ duration_ms 118.416887
 
-Actual adapted nginx: python3 tests/test_nginx_runtime.py
-exit=0
+
+Suite 3; exit=0
+test_long_cursor_request_line_fits_but_over_limit_is_rejected (__main__.LiveNginx.test_long_cursor_request_line_fits_but_over_limit_is_rejected) ... ok
 test_nginx_initializes_all_five_explicit_temp_paths (__main__.LiveNginx.test_nginx_initializes_all_five_explicit_temp_paths) ... ok
 test_optional_scroll_script_has_correct_mime_and_csp (__main__.LiveNginx.test_optional_scroll_script_has_correct_mime_and_csp) ... ok
 test_private_source_paths_are_denied (__main__.LiveNginx.test_private_source_paths_are_denied) ... ok
@@ -94,32 +100,38 @@ test_all_module_temp_paths_are_on_writable_deployment_mounts (__main__.RuntimeCo
 test_entrypoint_uses_stderr_before_config_parsing_and_preflights (__main__.RuntimeConfiguration.test_entrypoint_uses_stderr_before_config_parsing_and_preflights) ... ok
 
 ----------------------------------------------------------------------
-Ran 6 tests in 0.076s
+Ran 7 tests in 0.071s
 
 OK
 
-Upgrade/rollback: python3 -m unittest discover -s deploy -p 'test_*.py' -v
-exit=0
-test_current_health_and_gallery_css_pass (test_upgrade.CandidateCheckTests.test_current_health_and_gallery_css_pass) ... ok
+
+Suite 4; exit=0
+test_cleanup_after_startup_timeout_and_interruption (test_diagnostic_pagination.DiagnosticTests.test_cleanup_after_startup_timeout_and_interruption) ... ok
+test_missing_next_link_diagnosed_without_cutover (test_diagnostic_pagination.DiagnosticTests.test_missing_next_link_diagnosed_without_cutover) ... ok
+test_probe_output_bound_and_json_validation (test_diagnostic_pagination.DiagnosticTests.test_probe_output_bound_and_json_validation) ... ok
+test_real_http_counts_safe_links_and_does_not_follow_redirects (test_diagnostic_pagination.DiagnosticTests.test_real_http_counts_safe_links_and_does_not_follow_redirects) ... ok
+test_unowned_candidate_is_never_removed (test_diagnostic_pagination.DiagnosticTests.test_unowned_candidate_is_never_removed) ... ok
+test_wrong_image_and_held_upgrade_lock_refuse_creation (test_diagnostic_pagination.DiagnosticTests.test_wrong_image_and_held_upgrade_lock_refuse_creation) ... ok
+test_current_health_and_gallery_css_pass (test_upgrade.CandidateCheckTests.test_current_health_and_gallery_css_pass) ... Candidate checks passed (loopback port 49177).
+ok
 test_empty_second_page_rejected (test_upgrade.CandidateCheckTests.test_empty_second_page_rejected) ... ok
-test_explicit_skip_only_omits_both_live_searches (test_upgrade.CandidateCheckTests.test_explicit_skip_only_omits_both_live_searches) ... ok
+test_explicit_skip_only_omits_both_live_searches (test_upgrade.CandidateCheckTests.test_explicit_skip_only_omits_both_live_searches) ... Candidate checks passed (loopback port 49177).
+ok
 test_missing_next_link_rejected (test_upgrade.CandidateCheckTests.test_missing_next_link_rejected) ... ok
 test_missing_or_incomplete_gallery_css_rejected (test_upgrade.CandidateCheckTests.test_missing_or_incomplete_gallery_css_rejected) ... ok
 test_missing_or_incomplete_infinite_scroll_asset_rejected_even_when_upstream_skipped (test_upgrade.CandidateCheckTests.test_missing_or_incomplete_infinite_scroll_asset_rejected_even_when_upstream_skipped) ... ok
 test_old_health_version_rejected (test_upgrade.CandidateCheckTests.test_old_health_version_rejected) ... ok
-test_pagination_and_asset_failures_keep_production_running (test_upgrade.CandidateCheckTests.test_pagination_and_asset_failures_keep_production_running) ... Candidate checks passed (loopback port 49177).
-Candidate checks passed (loopback port 49177).
-Building binternet-securityops:2026.09.08.4; production remains running.
-Private failure diagnostics: /tmp/tmpd_5pkf8j/20260909T005531Z-081398/failure-diagnostics
+test_pagination_and_asset_failures_keep_production_running (test_upgrade.CandidateCheckTests.test_pagination_and_asset_failures_keep_production_running) ... Building binternet-securityops:2026.09.08.5; production remains running.
+Private failure diagnostics: /tmp/tmpld5mjvdp/20260909T014334Z-817e3e/failure-diagnostics
 Failed container status: running; OOM killed no; health healthy.
-Building binternet-securityops:2026.09.08.4; production remains running.
-Private failure diagnostics: /tmp/tmpjpfh6rwm/20260909T005531Z-3c4e2d/failure-diagnostics
+Building binternet-securityops:2026.09.08.5; production remains running.
+Private failure diagnostics: /tmp/tmpzhqv9iug/20260909T014334Z-148d1d/failure-diagnostics
 Failed container status: running; OOM killed no; health healthy.
-Building binternet-securityops:2026.09.08.4; production remains running.
-Private failure diagnostics: /tmp/tmp6frbi4h6/20260909T005531Z-ae8008/failure-diagnostics
+Building binternet-securityops:2026.09.08.5; production remains running.
+Private failure diagnostics: /tmp/tmp4mzcyejl/20260909T014334Z-53b152/failure-diagnostics
 Failed container status: running; OOM killed no; health healthy.
-Building binternet-securityops:2026.09.08.4; production remains running.
-Private failure diagnostics: /tmp/tmp235bnaud/20260909T005531Z-5bc988/failure-diagnostics
+Building binternet-securityops:2026.09.08.5; production remains running.
+Private failure diagnostics: /tmp/tmpodrciqyh/20260909T014334Z-674c98/failure-diagnostics
 Failed container status: running; OOM killed no; health healthy.
 ok
 test_provider_strings_outside_actual_gallery_images_do_not_pass (test_upgrade.CandidateCheckTests.test_provider_strings_outside_actual_gallery_images_do_not_pass) ... ok
@@ -137,47 +149,51 @@ test_restart_failure_retry_count_preserved (test_upgrade.ConfigTests.test_restar
 test_snapshot_permissions (test_upgrade.ConfigTests.test_snapshot_permissions) ... ok
 test_static_container_ip_refused (test_upgrade.ConfigTests.test_static_container_ip_refused) ... ok
 test_nginx_error_without_application_headers_is_identified (test_upgrade.HTTPFailureTests.test_nginx_error_without_application_headers_is_identified) ... ok
-test_real_candidate_http_checks_follow_validated_second_page (test_upgrade.HTTPFailureTests.test_real_candidate_http_checks_follow_validated_second_page) ... Candidate checks passed (loopback port 43217).
+test_real_candidate_http_checks_follow_validated_second_page (test_upgrade.HTTPFailureTests.test_real_candidate_http_checks_follow_validated_second_page) ... Candidate checks passed (loopback port 33409).
 ok
 test_real_http_error_preserves_numeric_cause_without_body_cookie_or_query (test_upgrade.HTTPFailureTests.test_real_http_error_preserves_numeric_cause_without_body_cookie_or_query) ... ok
 test_redirect_is_rejected_without_following_target (test_upgrade.HTTPFailureTests.test_redirect_is_rejected_without_following_target) ... ok
 test_script_error_names_fixed_asset_without_reflecting_query (test_upgrade.HTTPFailureTests.test_script_error_names_fixed_asset_without_reflecting_query) ... ok
 test_untrusted_diagnostic_headers_are_not_reflected (test_upgrade.HTTPFailureTests.test_untrusted_diagnostic_headers_are_not_reflected) ... ok
-test_candidate_failure_keeps_original_running (test_upgrade.TransitionTests.test_candidate_failure_keeps_original_running) ... Building binternet-securityops:2026.09.08.4; production remains running.
-Private failure diagnostics: /tmp/tmpqut6v9as/20260909T005531Z-c3d9ed/failure-diagnostics
+test_candidate_failure_keeps_original_running (test_upgrade.TransitionTests.test_candidate_failure_keeps_original_running) ... Building binternet-securityops:2026.09.08.5; production remains running.
+Private failure diagnostics: /tmp/tmpcloo2i8c/20260909T014334Z-089c73/failure-diagnostics
 Failed container status: running; OOM killed no; health healthy.
 ok
-test_cutover_failure_restores_old_name_networks_aliases_and_running_state (test_upgrade.TransitionTests.test_cutover_failure_restores_old_name_networks_aliases_and_running_state) ... Building binternet-securityops:2026.09.08.4; production remains running.
-Private failure diagnostics: /tmp/tmp0od363fk/20260909T005531Z-de6350/failure-diagnostics
+test_cutover_failure_restores_old_name_networks_aliases_and_running_state (test_upgrade.TransitionTests.test_cutover_failure_restores_old_name_networks_aliases_and_running_state) ... Building binternet-securityops:2026.09.08.5; production remains running.
+Private failure diagnostics: /tmp/tmp0bnt2caf/20260909T014334Z-9232d0/failure-diagnostics
 Failed container status: stopped; OOM killed no; health healthy.
 Cutover failed; restoring the retained original container.
 Original container restored: binternet
 ok
-test_exited_candidate_evidence_saved_privately_before_cleanup (test_upgrade.TransitionTests.test_exited_candidate_evidence_saved_privately_before_cleanup) ... Building binternet-securityops:2026.09.08.4; production remains running.
+test_exited_candidate_evidence_saved_privately_before_cleanup (test_upgrade.TransitionTests.test_exited_candidate_evidence_saved_privately_before_cleanup) ... Building binternet-securityops:2026.09.08.5; production remains running.
 ok
-test_http_502_preserves_upstream_403_and_never_stops_production (test_upgrade.TransitionTests.test_http_502_preserves_upstream_403_and_never_stops_production) ... Building binternet-securityops:2026.09.08.4; production remains running.
-Private failure diagnostics: /tmp/tmpx1ms_8zr/20260909T005531Z-7c3dd9/failure-diagnostics
+test_http_502_preserves_upstream_403_and_never_stops_production (test_upgrade.TransitionTests.test_http_502_preserves_upstream_403_and_never_stops_production) ... Building binternet-securityops:2026.09.08.5; production remains running.
+Private failure diagnostics: /tmp/tmpdagcxs6u/20260909T014334Z-a0c2b0/failure-diagnostics
 Failed container status: running; OOM killed no; health healthy.
 ok
-test_retained_always_restart_disabled_and_manual_rollback_restores_it (test_upgrade.TransitionTests.test_retained_always_restart_disabled_and_manual_rollback_restores_it) ... Building binternet-securityops:2026.09.08.4; production remains running.
-Upgrade complete: binternet uses binternet-securityops:2026.09.08.4
-Rollback: python3 /tmp/tmpol1w0he5/20260909T005531Z-61d986/upgrade.py rollback /tmp/tmpol1w0he5/20260909T005531Z-61d986/deployment.json
+test_retained_always_restart_disabled_and_manual_rollback_restores_it (test_upgrade.TransitionTests.test_retained_always_restart_disabled_and_manual_rollback_restores_it) ... Building binternet-securityops:2026.09.08.5; production remains running.
+Upgrade complete: binternet uses binternet-securityops:2026.09.08.5
+Rollback: python3 /tmp/tmprex8bwm0/20260909T014334Z-8021f2/upgrade.py rollback /tmp/tmprex8bwm0/20260909T014334Z-8021f2/deployment.json
+Original container restored: binternet
 ok
-test_rollback_refuses_unrelated_replacement (test_upgrade.TransitionTests.test_rollback_refuses_unrelated_replacement) ... Original container restored: binternet
+test_rollback_refuses_unrelated_replacement (test_upgrade.TransitionTests.test_rollback_refuses_unrelated_replacement) ... ok
+test_success_preserves_rollback_container_and_uses_tested_image_id (test_upgrade.TransitionTests.test_success_preserves_rollback_container_and_uses_tested_image_id) ... Building binternet-securityops:2026.09.08.5; production remains running.
+Upgrade complete: binternet uses binternet-securityops:2026.09.08.5
+Rollback: python3 /tmp/tmpm38kl0lg/20260909T014334Z-126774/upgrade.py rollback /tmp/tmpm38kl0lg/20260909T014334Z-126774/deployment.json
 ok
-test_success_preserves_rollback_container_and_uses_tested_image_id (test_upgrade.TransitionTests.test_success_preserves_rollback_container_and_uses_tested_image_id) ... Building binternet-securityops:2026.09.08.4; production remains running.
-Upgrade complete: binternet uses binternet-securityops:2026.09.08.4
-Rollback: python3 /tmp/tmp2yecdk3y/20260909T005531Z-d12ba1/upgrade.py rollback /tmp/tmp2yecdk3y/20260909T005531Z-d12ba1/deployment.json
-ok
-test_unavailable_logs_do_not_mask_candidate_failure_or_prevent_cleanup (test_upgrade.TransitionTests.test_unavailable_logs_do_not_mask_candidate_failure_or_prevent_cleanup) ... Building binternet-securityops:2026.09.08.4; production remains running.
-Private failure diagnostics: /tmp/tmp6giry_08/20260909T005531Z-438da2/failure-diagnostics
+test_unavailable_logs_do_not_mask_candidate_failure_or_prevent_cleanup (test_upgrade.TransitionTests.test_unavailable_logs_do_not_mask_candidate_failure_or_prevent_cleanup) ... Building binternet-securityops:2026.09.08.5; production remains running.
+Private failure diagnostics: /tmp/tmp5zg2oe9c/20260909T014334Z-397ca0/failure-diagnostics
 Failed container status: stopped; exit code 78; OOM killed no; health starting.
 Some diagnostics could not be collected; see the private diagnostics folder.
 ok
 
 ----------------------------------------------------------------------
-Ran 35 tests in 0.093s
+Ran 41 tests in 0.616s
 
 OK
 
-Syntax/configuration: 14 PHP files passed PHP 8.3 lint; Python files compiled; both shell entry points passed ShellCheck; git diff --check passed. Both exact English/Portuguese copy-and-deploy commands passed fish --no-execute.
+
+Suite 5; exit=0
+No syntax errors detected in pagination-diagnostic/probe.php
+
+Additional executed checks: exact candidate checker traversed two actual PHP fixture pages with a 2064-byte cursor and distinct images (Docker inspection mocked); 14 PHP files linted; Python compiled; ShellCheck passed both shell entry points; documented deployment commands passed fish syntax; git diff --check passed. Diagnostic PHP metadata/privacy: seven fixture checks passed.

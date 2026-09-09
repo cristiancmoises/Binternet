@@ -1,8 +1,8 @@
 {
   "repository": "https://github.com/cristiancmoises/Binternet",
   "base_commit": "b8dc197b4930b50ba7356d579d684182e93af428",
-  "release": "2026.09.08.4",
+  "release": "2026.09.08.5",
   "remote_modified": false,
-  "previous_release": "2026.09.08.3",
-  "repair": "Canonical Pinterest pagination cursor and optional same-origin infinite scrolling"
+  "previous_release": "2026.09.08.4",
+  "repair": "Support real Pinterest cursors exceeding 2048 bytes with consistent 4096-byte pagination limits"
 }

@@ -8,7 +8,7 @@ $error = null;
 $result = ['results' => [], 'bookmark' => null, 'cached' => false, 'stale' => false];
 try {
     $query = trim(bt_param('q', '', 160));
-    $bookmark = bt_param('bookmark', '', 2048);
+    $bookmark = bt_param('bookmark', '', BT_BOOKMARK_MAX_BYTES);
     if ($query === '') {
         throw new InvalidArgumentException('Enter a search term to find images.');
     }

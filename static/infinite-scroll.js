@@ -5,6 +5,7 @@
   const DEFAULTS = {theme: 'black', view: 'masonry', quality: 'auto', scroll: 'manual'};
   const ALLOWED_PARAMS = new Set(['q', 'bookmark', ...Object.keys(DEFAULTS)]);
   const MAX_HTML_BYTES = 2 * 1024 * 1024;
+  const MAX_BOOKMARK_BYTES = 4096;
 
   function validateNextUrl(value, contextValue) {
     const context = new URL(contextValue);
@@ -28,7 +29,7 @@
       }
     }
     const bookmark = url.searchParams.get('bookmark');
-    if (!bookmark || new TextEncoder().encode(bookmark).length > 2048 || /[\u0000-\u001f\u007f]/.test(bookmark)) {
+    if (!bookmark || new TextEncoder().encode(bookmark).length > MAX_BOOKMARK_BYTES || /[\u0000-\u001f\u007f]/.test(bookmark)) {
       throw new Error('Invalid next-page bookmark.');
     }
     url.searchParams.sort();

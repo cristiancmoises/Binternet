@@ -1,13 +1,13 @@
-# Docker deployment — 2026.09.08.4
+# Docker deployment — 2026.09.08.5
 
 This release upgrades the existing `binternet` container on the IONOS VPS. It does not require a Docker Compose project or change the separate `binternet-candidate-20260907` container.
 
 ## Copy and upgrade from your computer
 
-Download `binternet-securityops-2026.09.08.4.tar.gz` to `~/Downloads`. The archive has a single top-level directory named `binternet-securityops-2026.09.08.4`. Run this in fish, bash, or zsh:
+Download `binternet-securityops-2026.09.08.5.tar.gz` to `~/Downloads`. The archive has a single top-level directory named `binternet-securityops-2026.09.08.5`. Run this in fish, bash, or zsh:
 
 ```sh
-scp -P 5119 ~/Downloads/binternet-securityops-2026.09.08.4.tar.gz root@securityops.co:/root/ && ssh -p 5119 root@securityops.co 'bash -c "set -e; install -d -m 700 /opt/binternet-releases; tar -xzf /root/binternet-securityops-2026.09.08.4.tar.gz -C /opt/binternet-releases; cd /opt/binternet-releases/binternet-securityops-2026.09.08.4; sha256sum --quiet -c MANIFEST.sha256; bash deploy/upgrade.sh"'
+scp -P 5119 ~/Downloads/binternet-securityops-2026.09.08.5.tar.gz root@securityops.co:/root/ && ssh -p 5119 root@securityops.co 'bash -c "set -e; install -d -m 700 /opt/binternet-releases; tar -xzf /root/binternet-securityops-2026.09.08.5.tar.gz -C /opt/binternet-releases; cd /opt/binternet-releases/binternet-securityops-2026.09.08.5; sha256sum --quiet -c MANIFEST.sha256; bash deploy/upgrade.sh"'
 ```
 
 The VPS needs Docker and Python 3. It builds the image locally and must reach Alpine's package repositories, the image registry, Pinterest, and its image CDN. SSH uses your existing authentication; no credentials are included in this project. The release directory is overwritten if you repeat extraction of this exact release, so keep local source customizations separately.
@@ -16,7 +16,7 @@ The VPS needs Docker and Python 3. It builds the image locally and must reach Al
 
 1. Inspects the running container and writes a mode-0600 snapshot inside a mode-0700 `/opt/binternet-backups/<timestamp-id>/` directory. The snapshot may contain environment secrets; do not share it.
 2. Rejects custom mounts/volumes, static container IPs, shared/host networking, privileged mode, devices, custom extra capabilities, and unsupported port mappings before stopping anything. These configurations need an explicit migration instead of silently losing settings.
-3. Builds `binternet-securityops:2026.09.08.4` while production continues running. The tested image ID is used for both the candidate and the final replacement.
+3. Builds `binternet-securityops:2026.09.08.5` while production continues running. The tested image ID is used for both the candidate and the final replacement.
 4. Starts a uniquely named candidate on an automatically allocated `127.0.0.1` port. The existing host ports 5134 and 15134 are not used for the candidate. Checks Docker health, health JSON with the exact release version, the search form, the gallery stylesheet and the local infinite-scroll script. It searches Pinterest for `architecture`, requires a first page with image results and a usable Next page link, follows that link, and requires distinct new images on the second page. Both live pages must pass before cutover.
 5. Removes its own candidate, stops production, retains the original container under `binternet-rollback-<timestamp-id>`, and creates the replacement as `binternet`. The retained original has its restart policy temporarily disabled so a host reboot cannot make it reclaim production ports; rollback restores its original policy and retry count. The interruption is limited to this cutover and readiness check; this is not a zero-downtime deployment.
 6. Preserves existing published TCP 8080 mappings, including `0.0.0.0:5134`, environment values, restart policy, configured resource limits, DNS/extra-host settings, application labels, Docker networks, and their aliases. Compose ownership labels are intentionally not transferred because this replacement is managed by the upgrade script. Avoid running an older Compose file afterward: it could replace this release.
@@ -27,7 +27,7 @@ Environment values must fit a Docker env file; multiline values are rejected. Ca
 If Pinterest is unavailable, the default candidate check prevents cutover. To deliberately accept that search availability is unverified, run on the VPS:
 
 ```sh
-bash /opt/binternet-releases/binternet-securityops-2026.09.08.4/deploy/upgrade.sh --skip-upstream-check
+bash /opt/binternet-releases/binternet-securityops-2026.09.08.5/deploy/upgrade.sh --skip-upstream-check
 ```
 
 This option skips both live Pinterest page checks. Local health, the homepage, stylesheet and script checks still run. It does not solve an upstream block, outage or pagination bug.
@@ -80,7 +80,7 @@ Run deployment logic tests with:
 python3 -m unittest discover -s deploy -p 'test_*.py' -v
 ```
 
-These tests exercise configuration preservation, private file permissions, candidate failure, cutover failure/restoration, image-ID pinning, and protection of unrelated containers with a mocked Docker interface. They do not substitute for a Docker build or production smoke test. The operator confirmed release .3 working on the VPS. This development environment has no Docker daemon and cannot run live Pinterest or real-browser checks. The .4 image build, both live pagination checks and browser verification remain external checks. No VPS login or .4 deployment was performed while preparing this release.
+These tests exercise configuration preservation, private file permissions, candidate failure, cutover failure/restoration, image-ID pinning, and protection of unrelated containers with a mocked Docker interface. They do not substitute for a Docker build or production smoke test. The operator confirmed release .3 working on the VPS. This development environment has no Docker daemon and cannot run live Pinterest or real-browser checks. The .5 image build, both live pagination checks and browser verification remain external checks. No VPS login or .4 deployment was performed while preparing this release.
 
 ## Startup failure diagnostics
 
@@ -96,6 +96,10 @@ The .2 candidate was healthy but Pinterest returned HTTP 403. Release .3 adds th
 
 ## Pagination and optional infinite scrolling in .4
 
-The parser now reads `resource.options.bookmarks[0]`, with explicit end markers taking precedence over legacy metadata. Search cache keys use a new `v2:` namespace so a cached .3 result that lost its continuation does not hide the repaired link. Manual pages remain the default; choosing Infinite scroll carries `scroll=infinite` in search and pagination URLs.
+The parser now reads `resource.options.bookmarks[0]`, with explicit end markers taking precedence over legacy metadata. Search cache keys use a new `v3:` namespace so a cached .3 result that lost its continuation does not hide the repaired link. Manual pages remain the default; choosing Infinite scroll carries `scroll=infinite` in search and pagination URLs.
 
 The browser loads one same-origin page at a time, with a 15-second deadline and a 2 MiB HTML response limit. It rebuilds allowed image cards from validated data, removes duplicate images, and stops automatic requests on repeated pages or errors. Pause, Retry loading and Next page remain available as appropriate. There is no fixed page ceiling; retained cards still consume browser memory as a session grows. See [pagination repair and verification limits](PAGINATION_FIX.md).
+
+## Cursor-size repair in .5
+
+The previous .4 candidate was healthy but failed its Next page check before production cutover. Release .5 supports valid cursors up to 4096 bytes; a published 2064-byte cursor proved the old cap too small. The two-page gate remains mandatory by default. If it still fails, run `python3 deploy/diagnose_pagination.py` from this extracted release on the VPS. The optional probe uses the retained, pinned .4 image and prints only pagination metadata. It does not deploy a replacement.

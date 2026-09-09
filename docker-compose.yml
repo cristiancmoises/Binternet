@@ -3,7 +3,7 @@ services:
   binternet:
     container_name: binternet
     build: .
-    image: binternet-securityops:2026.09.08.4
+    image: binternet-securityops:2026.09.08.5
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]

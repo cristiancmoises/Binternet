@@ -1,5 +1,9 @@
 # Binternet upgrade prompt — executed scope
 
+## Executed cursor-size repair — 2026.09.08.5
+
+Use the newly supplied VPS evidence: phase prepared, a healthy .4 candidate and first-page images, but no valid Next page link. Do not bypass the two-page deployment gate. Check maintained clients and real public response fixtures before changing request behavior. A published valid 2064-byte cursor exceeds the parser and browser's 2048-byte cap: fix this demonstrated defect using a consistent 4096-byte bound, retain end/repetition/UTF-8/control validation, and invalidate old parsed cache entries. Account for percent encoding and JSON escaping with explicit bounded local and outbound URL capacities. Do not change working handler headers or require guessed first-page options. Prove first-to-second page traversal with a 2064-byte fixture, boundary rejection, Unicode byte counting and worst-case punctuation serialization; run all relevant regressions. Package .5, a patch applicable to the existing committed .4 tree, and updated four-token publication support. Include a safe optional diagnostic of the pinned .4 image to distinguish the actual cursor rejection reason if the live gate still fails. Preserve production, rollback, NPM and unrelated containers, and distinguish confirmed fixture evidence from the not-yet-observed VPS cursor.
+
 ## Urgent pagination and infinite scrolling prompt — 2026.09.08.4
 
 Act as the maintainer responsible for a working production PHP image search. Restore the missing Next page control by tracing the actual Pinterest response cursor through parsing, cache, URL construction and rendered HTML. Use current maintained client evidence; prefer canonical resource.options.bookmarks metadata, preserve supported legacy shapes only when canonical metadata is absent, and stop on provider end markers, invalid or repeated cursors. Invalidate incorrectly parsed cached entries. Prove first page → second page → end using raw response fixtures.

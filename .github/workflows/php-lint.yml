@@ -1,4 +1,4 @@
-name: PHP Lint
+name: PHP and container regression checks
 
 on:
   push:
@@ -11,9 +11,22 @@ permissions:
   contents: read
 
 jobs:
-  php-lint:
-    name: Lint PHP files
+  infinite-scroll:
+    name: Optional infinite scrolling regression tests
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/infinite-scroll.test.js
+
+  php-lint:
+    name: PHP ${{ matrix.php }} lint and regression tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.3', '8.4']
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -21,10 +34,67 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php }}
           coverage: none
+          extensions: curl, fileinfo, mbstring
 
       - name: Lint PHP files
         run: |
           find . -type f -name '*.php' -not -path './.git/*' -print0 \
             | xargs -0 -r -n1 php -l
+
+      - name: Run security and cache regression tests
+        run: php tests/security.php
+
+      - name: Run application HTTP regression tests
+        run: python3 tests/integration.py
+
+      - name: Run upgrade and rollback regression tests
+        run: python3 -m unittest discover -s deploy -p 'test_*.py' -v
+
+  nginx-runtime:
+    name: Nginx writable paths and live HTTP regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install nginx for local runtime checks
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes nginx
+      - name: Check all runtime paths and start the shipped nginx configuration
+        env:
+          NGINX_BIN: /usr/sbin/nginx
+        run: python3 tests/test_nginx_runtime.py
+
+  container-smoke:
+    name: Build and test hardened container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build project image
+        run: docker build --pull -t binternet:test .
+      - name: Start with production restrictions
+        run: |
+          docker run --detach --name binternet-test \
+            --publish 127.0.0.1:18080:8080 \
+            --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+            --pids-limit 128 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=268435456,mode=1777 \
+            --tmpfs /run:rw,noexec,nosuid,size=8388608,mode=1777 \
+            --tmpfs /var/cache/nginx:rw,noexec,nosuid,size=16777216,mode=1777 \
+            binternet:test
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18080/health.php; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs binternet-test
+          exit 1
+      - name: Run HTTP and nginx access-control checks
+        run: python3 tests/integration.py --base-url http://127.0.0.1:18080
+      - name: Show container logs and remove candidate
+        if: always()
+        run: |
+          docker logs binternet-test || true
+          docker rm --force binternet-test || true

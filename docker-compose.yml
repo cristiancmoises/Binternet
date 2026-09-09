@@ -1,10 +1,25 @@
+# Fresh installations only. Existing VPS: use deploy/upgrade.sh.
 services:
   binternet:
     container_name: binternet
-    image: ghcr.io/ahwxorg/binternet:latest
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    build: .
+    image: binternet-securityops:2026.09.08.4
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 1536m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=268435456,mode=1777
+      - /run:rw,noexec,nosuid,size=8388608,mode=1777
+      - /var/cache/nginx:rw,noexec,nosuid,size=16777216,mode=1777
     ports:
-     - '8080:8080'
+      - '127.0.0.1:5134:8080'
+    environment:
+      BINTERNET_CACHE_DIR: /tmp/binternet-cache
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'

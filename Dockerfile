@@ -1,22 +1,31 @@
-FROM alpine:3.20
+FROM alpine:3.24 AS source
+COPY . /source/
+RUN tar -czf /source.tar.gz -C /source .
 
-RUN apk add php83 php83-fpm php83-dom php83-curl php83-json php83-openssl nginx --no-cache
-RUN sed -i '/user nginx;/d' /etc/nginx/nginx.conf \
-    && sed -i 's/^user = nobody/; user = nobody/' /etc/php83/php-fpm.d/www.conf \
-    && sed -i 's/^group = nobody/; group = nobody/' /etc/php83/php-fpm.d/www.conf \
-    && sed -i 's/listen = 127.0.0.1:9000/listen = \/run\/php\/php-fpm83.sock/' /etc/php83/php-fpm.d/www.conf \
-    && sed -i 's/;listen.owner = nobody/listen.owner = nginx/' /etc/php83/php-fpm.d/www.conf \
-    && sed -i 's/;listen.group = nobody/listen.group = nginx/' /etc/php83/php-fpm.d/www.conf \
-    && sed -i 's/;listen.mode/listen.mode/' /etc/php83/php-fpm.d/www.conf \
-    && sed -i 's/;listen.allowed_clients/listen.allowed_clients/' /etc/php83/php-fpm.d/www.conf
+FROM alpine:3.24
 
-RUN mkdir -p /var/www/binternet /run/php
-COPY . /var/www/binternet
+RUN apk add --no-cache ca-certificates nginx tini \
+      php84 php84-fpm php84-curl php84-dom php84-fileinfo \
+      php84-mbstring php84-opcache php84-openssl \
+    && mkdir -p /var/www/binternet /run/php /var/cache/nginx \
+    && rm -f /etc/nginx/http.d/default.conf \
+    && chown -R nginx:nginx /run /var/cache/nginx /var/log/nginx
+
+COPY deploy/nginx-main.conf /etc/nginx/nginx.conf
 COPY nginx.conf /etc/nginx/http.d/binternet.conf
-RUN rm /var/www/binternet/nginx.conf /etc/nginx/http.d/default.conf \
-    && chown -R nginx:nginx /var/log/php83/ /run
+COPY deploy/php-fpm.conf /etc/php84/php-fpm.conf
+COPY deploy/php.ini /etc/php84/conf.d/99-binternet.ini
+COPY deploy/entrypoint.sh /usr/local/bin/binternet-entrypoint
+COPY index.php search.php image_proxy.php donate.php health.php /var/www/binternet/
+COPY misc/ /var/www/binternet/misc/
+COPY static/ /var/www/binternet/static/
+COPY lib/ /var/www/binternet/lib/
+COPY --from=source /source.tar.gz /var/www/binternet/source.tar.gz
+RUN chmod 755 /usr/local/bin/binternet-entrypoint
 
+ENV BINTERNET_CACHE_DIR=/tmp/binternet-cache
 USER nginx
 EXPOSE 8080
-ENTRYPOINT ["/bin/sh", "-c" , "/usr/sbin/php-fpm83 -D && /usr/sbin/nginx -c /etc/nginx/nginx.conf -g 'daemon off;'"]
-HEALTHCHECK --timeout=5s CMD wget --no-verbose --tries=1 --spider 127.0.0.1:8080 || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1:8080/health.php || exit 1
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/binternet-entrypoint"]

@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+cache/
+artifacts/
+*.log
+*.tar.gz
+*.zip

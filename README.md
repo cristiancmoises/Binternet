@@ -1,67 +1,57 @@
-<h2 align="center">Binternet</h2>
+# Binternet · SecurityOps
 
-> The main concept is that you don't want the random popups forcing you to log in, and you don't want a bunch of JS.
+A lightweight Pinterest image browser with no login wall and a same-origin image proxy. Manual browsing works without JavaScript; infinite scrolling is optional. This package extends [cristiancmoises/Binternet](https://github.com/cristiancmoises/Binternet) from commit `b8dc197b4930b50ba7356d579d684182e93af428`.
 
-<h3 align="center">Mirrors</h3>
+Release: **2026.09.08.4**.
 
-<div align="center">
- 
-[GitHub](https://github.com/Ahwxorg/Binternet)
+## What changed
 
-> Because of PRs/issues, I will use GitHub for now. If you don't like GitHub, you can use one of the [GotHub](https://codeberg.org/gothub/gothub) instances.
+Release 2026.09.08.4 restores the next-page link by reading Pinterest's canonical continuation bookmark and adds optional infinite scrolling. Deployment now checks two live result pages before cutover. See [pagination repair and limits](docs/PAGINATION_FIX.md). The [API compatibility repair from .3](docs/PINTEREST_403_FIX.md) and the read-only Nginx startup repair from .2 are retained.
 
- </div>
+- **Five themes:** Black (default), Charcoal, Midnight, Paper and Forest.
+- **Five galleries:** Masonry, Grid, Compact, Justified and Focus.
+- **Image quality:** automatic responsive previews, high quality, original resolution and a data-saver option. Original files remain available through the local proxy. Images are never artificially upscaled or recompressed.
+- **Faster repeat searches:** bounded server caches, request coalescing, browser image caching and lazy loading. Cold search speed and availability still depend on Pinterest.
+- **Usable without JavaScript:** search, preferences, pagination and image opening use ordinary forms and links. Preferences are carried in the URL.
+- **Optional infinite scrolling:** choose Infinite scroll in Browsing to append more results as you approach the end of a page. Pause and retry controls are provided; the Next page link remains the manual fallback. Manual pages are the default.
+- **Hardened requests:** HTTPS image-host allowlist, public IPv4 destination pinning, no redirects, byte/time limits, raster validation and escaped output.
+- **Controlled VPS replacement:** build and verify a separate Docker candidate, preserve production bindings and networks, retain the previous container and automatically restore it if cutover fails.
 
+## Deploy on the existing IONOS VPS
 
-<h2 align="center">Showcase:</h2>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Ahwxorg/binternet/main/static/img/binternet-1.png" width="350">
-  <img src="https://raw.githubusercontent.com/Ahwxorg/binternet/main/static/img/binternet-2.png" width="350">
-</p>
+See [English instructions](docs/DEPLOYMENT.md) or [Instruções em português](docs/DEPLOYMENT.pt-BR.md). They include copy-and-deploy commands for `root@securityops.co`, SSH port `5119`, the existing `binternet` container and host port `5134`.
 
+For a fresh local Docker instance:
 
-<h2 align="center">Features:</h2>
+```sh
+docker compose up -d --build
+```
 
-* API-less Pinterest image searching.
-* Pinterest doesn't see the IP of the end user, only the instance IP;
-* Image proxy (thanks to [LibreX](https://github.com/hnhx/LibreX)'s code).
+The fresh Compose service uses a loopback port and builds **this directory**. Use the existing-container upgrade script for the IONOS installation so current Docker networks and port bindings are preserved. Do not run a fresh Compose stack over an existing production name.
 
+## Test
 
-<h2 align="center">Instances:</h2>
+PHP 8.3 or 8.4 with curl, mbstring and DOM, Python 3, Node.js for the script tests, and Docker for container tests:
 
-> Make a PR to get added. Cloudflare™ is *not* allowed.
+```sh
+find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+php tests/security.php
+python3 tests/integration.py
+node --test tests/infinite-scroll.test.js
+NGINX_BIN=nginx python3 -m unittest discover -s tests -p 'test_nginx_runtime.py' -v
+python3 -m unittest discover -s deploy -p 'test_*.py' -v
+```
 
-| Clearnet | TOR | I2P | Country |
-|-|-|-|-|
-| [binternet.ahwx.org](https://binternet.ahwx.org) | no | no | 🇳🇱 NL (Official Instance) |
-| no clearnet address | [yes!](http://binternet.skunky7dhv7nohsoalpwe3sxfz3fbkad7r3wk632riye25vqm3meqead.onion) | [yes!](http://5cv2aw6jhe6la444vpn3jvo46442ls3ccgp3difx5ddlv5yf4hlq.b32.i2p) | 🇷🇺﻿﻿ RU |
-| [bn.bloat.cat](https://bn.bloat.cat) | no | no | 🇩🇪 DE |
-| [bn.opnxng.com](https://bn.opnxng.com) | no | no | 🇸🇬 SG |
-| [binternet.ducks.party](https://binternet.ducks.party) | no | no | 🇳🇱 NL |
-| [binternet.4o1x5.dev](https://binternet.4o1x5.dev) | no | no | 🇭🇺 HU |
-| [binternet.darkness.services](https://binternet.darkness.services) | [yes!](http://binternet.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion/) | no | 🇺🇸 US |
-| [binternet.privacyredirect.com](https://binternet.privacyredirect.com) | no | no | 🇫🇮 FI |
-| [binternet.lunar.icu](https://binternet.lunar.icu) | no | no | 🇩🇪 DE |
-| [binternet.bunk.lol](https://binternet.bunk.lol) | no | no | 🇮🇸 IS |
-| [pin.blitzw.in](https://pin.blitzw.in) | no | no | 🇩🇰 DK |
-| [binternet.canine.tools](https://binternet.canine.tools) | no | no | 🇺🇸 US |
-| [img.securityops.co](https://img.securityops.co) | no | no | 🇺🇸 US |
-<br>
+The CI workflow additionally builds the hardened Docker image and checks route exposure. See [AUDIT.md](AUDIT.md) for exact evidence and remaining checks; an authored CI job is not a claim that it has already passed on GitHub. Release .3 was confirmed working by the VPS operator. The .4 Docker build, live Pinterest pagination and browser behavior still need verification on a host that can run them.
 
+## Technical details
 
-<h2 align="center">Legal notice</h2>
+Read [architecture and limits](docs/ARCHITECTURE.md), [changelog](CHANGELOG.md), [executed upgrade prompt](UPGRADE_PROMPT.md) and [next development prompt](docs/NEXT_PROMPT.md).
 
-Binternet doesn't host any content. All content shown on any Binternet instances is from Pinterest™. Pinterest is a registered trademark of Pinterest Inc. Binternet is not affiliated with Pinterest Inc. Any issues with content shown on any Binternet instances need to be reported to Pinterest, not the instance host's internet provider or domain provider.
+Pinterest's unauthenticated endpoint is unofficial. It may change, return no results or block requests from a particular VPS. The application reports those failures and can show explicitly marked recent cached results. The health endpoint checks the local application; deployment separately requires a first result page, a usable continuation link and new images on the second page before cutover by default. Infinite scrolling has no fixed page ceiling, but ends when Pinterest stops providing results or repeats pages. Images already appended remain in the document, so long sessions use more browser memory.
 
-Cloudflare is a registered trademark of Cloudflare, Inc. Binternet is not affiliated with Cloudflare, Inc.
+## Attribution and license
 
+Binternet originated with Ahwxorg, with image-proxy and utility contributions from LibreX/LibreY. Original upstream information and historical instance listings are preserved in [UPSTREAM_README.md](docs/UPSTREAM_README.md); those listings have not been reverified. The existing [AGPL-3.0 license](LICENSE) remains unchanged. A matching copy of the running source is available at `/source.tar.gz` in the Docker build. The donation page clearly attributes its preserved donation links to the original upstream author.
 
-<h2 align="center">Install</h2>
-
-This section has moved to [the wiki](https://github.com/Ahwxorg/Binternet/wiki/Installing).
-
-
-<h3 align="center">Credits:</h3>
-
-* [LibreX](https://github.com/hnhx/librex) - a bit of misc code.
-* [LibreY](https://github.com/Ahwxorg/LibreY) - image proxy
+Binternet is not affiliated with Pinterest Inc. Images and trademarks belong to their respective owners. The image proxy temporarily caches content to operate the service; this is not a grant of permission to reuse an image. Report content issues to the originating platform.

@@ -1,0 +1,36 @@
+# Binternet upgrade prompt — executed scope
+
+## Urgent pagination and infinite scrolling prompt — 2026.09.08.4
+
+Act as the maintainer responsible for a working production PHP image search. Restore the missing Next page control by tracing the actual Pinterest response cursor through parsing, cache, URL construction and rendered HTML. Use current maintained client evidence; prefer canonical resource.options.bookmarks metadata, preserve supported legacy shapes only when canonical metadata is absent, and stop on provider end markers, invalid or repeated cursors. Invalidate incorrectly parsed cached entries. Prove first page → second page → end using raw response fixtures.
+
+Add an explicit Manual / Infinite scroll preference, defaulting to Manual. Preserve it with query, theme, gallery and quality across every search, form and continuation link. Keep real Next page navigation usable without JavaScript. In infinite mode, load the next page when the reader approaches the bottom: one request at a time, deadline and response limit, lazy images, duplicate filtering, no artificial page cap, accessible loading/end/error announcements, pause/resume and deliberate retry after failure. Append separate gallery sections so existing masonry columns do not reshuffle. Do not imply that Pinterest guarantees unlimited results. Document retained DOM growth in long sessions.
+
+Use a small self-hosted script and no framework, tracking, external assets or unsafe inline code. Constrain both CSP and fetched URLs to this instance. Treat fetched HTML as untrusted: validate pagination context and image proxy destinations, reconstruct only supported card fields, and reject executable markup, redirect destinations, repeated pages and malformed responses. Never spin on 403/429/5xx errors or remove the manual fallback when a request fails.
+
+Test the cursor parser, rendered links and preference preservation over actual local HTTP; exercise the JavaScript paging state machine, duplicate handling, cancellation, errors and retry; run existing security, cache, nginx and deployment regressions. Make the candidate gate require the served script plus real first-page images, a usable cursor and distinct second-page images before production cutover. Preserve the running container, unrelated candidate and proxy manager. Record what cannot be exercised locally, including Docker/VPS execution and actual browser scrolling.
+
+Then regenerate the complete versioned release and both publication patches from their recorded bases. Adapt the official upstream patch without private VPS details, preserve upstream's existing API and routing handler, and provide fish-compatible local commit, four-remote push and explicit upstream PR commands. Do not publish or open the PR automatically. Include exact audit evidence and this prompt in the deliverables.
+
+Act as a PHP maintainer, image-search UX engineer and security reviewer. Improve the existing cristiancmoises/Binternet source at commit b8dc197b4930b50ba7356d579d684182e93af428 without replacing its lightweight architecture or license.
+
+Deliver release 2026.09.08.1 with a true black default, four additional themes, and five clearly distinct responsive gallery layouts. Keep search and navigation usable without JavaScript. Preserve preferences through searches and pagination. Use accessible labels, visible focus indicators, useful alt text and honest empty/error states.
+
+Keep full-resolution images available while using responsive thumbnails, lazy loading and explicit quality controls to reduce bandwidth. Add bounded server-side result and image caching, request deadlines and contention protection. Never fabricate search results or claim that upstream Pinterest will always respond quickly.
+
+Audit every entry point and trust boundary: query/array validation, output escaping, bookmark limits, HTTPS URL allow-listing, public DNS destinations, redirects, response byte caps, raster content validation, cache paths and expiry, information exposure, Nginx rules, Docker privileges and CI. Add meaningful regression and integration tests. Record evidence and limitations; do not equate passing tests with a security certification.
+
+Package the complete project, license, tests, changelog, this prompt, audit report and English/Portuguese deployment instructions. Provide fish-compatible client commands to copy ~/Downloads/binternet-securityops-2026.09.08.1.tar.gz via SSH port 5119 to root@securityops.co.
+
+The VPS already runs binternet on host port 5134/container port 8080 and binternet-candidate-20260907 on loopback port 15134. Build and health-check a uniquely named candidate on an automatically assigned loopback port before cutover. Preserve the production container's host binding, required configuration and Docker networks for containerized Nginx Proxy Manager. Retain the old container and implement automatic/manual rollback. Do not delete the existing candidate or restart unrelated services. Supply deployment commands; do not claim deployment occurred without executing it.
+
+Finish with the downloadable project, test results, precise deployment commands and a next-stage prompt grounded in any remaining risks.
+
+## Executed startup repair — 2026.09.08.2
+
+Use the VPS diagnostic showing `/var/lib/nginx/tmp/proxy` and the initial default error log on a read-only filesystem. Fix every Nginx temporary path through the existing bounded tmpfs and direct early logs to stderr. Keep read-only/non-root/capability restrictions. Validate startup configuration before launching services, preserve private failed-candidate evidence before cleanup, and add a regression that detects the original omission. Deliver a new complete archive with a distinct version, regenerated manifest, audit evidence and the same safe copy/candidate/cutover/rollback flow. Do not claim the new VPS deployment has occurred.
+
+
+## Executed API compatibility repair — 2026.09.08.3
+
+Use the VPS diagnostic as evidence: .2 is healthy, DNS/TLS/cache work, and the Pinterest resource endpoint responds 403 before JSON parsing. Compare maintained upstream clients and apply the smallest documented API compatibility fix. Add the Pinterest routing header only to its exact search endpoint. Preserve all TLS, destination, redirect, timeout and byte protections. Keep useful upstream status and allowlisted error categories through the search response and candidate validator without exposing cookies, response bodies or queries. Add offline transport regression coverage and an actual local HTTP error test; verify that a failed candidate still cannot stop production. Deliver complete source, changelog, bilingual deployment instructions and an audit distinguishing local tests from the live VPS gate. Do not classify the IP as banned or claim the search works until the VPS returns actual images.

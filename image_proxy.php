@@ -1,38 +1,43 @@
 <?php
-
-require "misc/tools.php";
-
-$url = isset($_GET["url"]) ? $_GET["url"] : "";
-
-$scheme = get_url_scheme($url);
-$host = get_root_domain($url);
-
-$allowed_domains = array("pinimg.com", "i.pinimg.com", "pinterest.com");
-
-// Only proxy http(s) requests whose host is exactly one of the Pinterest
-// image hosts. Strict comparison avoids type-juggling surprises.
-if (($scheme === "http" || $scheme === "https") && in_array($host, $allowed_domains, true))
-{
-  $result = request($url);
-  $content_type = isset($result["content_type"]) ? (string) $result["content_type"] : "";
-
-  // Only ever hand a real image back to the browser, so the proxy can't be
-  // turned into a generic open proxy for arbitrary content types.
-  if ($result["body"] !== null && strncmp($content_type, "image/", 6) === 0)
-  {
-    header("Content-Type: " . $content_type);
-    header("X-Content-Type-Options: nosniff");
-    header("Content-Security-Policy: default-src 'none'");
-    echo $result["body"];
-  }
-  else
-  {
+declare(strict_types=1);
+require_once __DIR__ . '/lib/bootstrap.php';
+header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: no-referrer');
+header('Cross-Origin-Resource-Policy: same-origin');
+try {
+    if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
+        header('Allow: GET, HEAD');
+        http_response_code(405);
+        exit;
+    }
+    $url = bt_validate_image_url(bt_param('url', '', 4096));
+    $entry = bt_cached_fetch('image', $url, 86400, 604800, static function () use ($url): string {
+        $response = bt_http_get($url, 8 * 1024 * 1024);
+        bt_image_type($response['body']);
+        return $response['body'];
+    });
+    $body = $entry['body'];
+    $mime = bt_image_type($body);
+    $etag = '"' . hash('sha256', $body) . '"';
+    header('Content-Type: ' . $mime);
+    header('Cache-Control: public, max-age=86400, stale-if-error=604800');
+    header('ETag: ' . $etag);
+    header('X-Binternet-Cache: ' . ($entry['stale'] ? 'STALE' : ($entry['cached'] ? 'HIT' : 'MISS')));
+    if (trim($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) {
+        http_response_code(304);
+        exit;
+    }
+    header('Content-Length: ' . strlen($body));
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'HEAD') { echo $body; }
+} catch (InvalidArgumentException $e) {
+    http_response_code(400);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo 'Invalid image URL.';
+} catch (RuntimeException $e) {
     http_response_code(502);
-  }
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo 'Image unavailable. Please try again later.';
 }
-else
-{
-  http_response_code(403);
-}
-
-?>
